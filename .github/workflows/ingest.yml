@@ -1,0 +1,84 @@
+name: Globus Search Ingest
+on:
+  # Runs on pushes to "main"
+  push:
+    paths:
+      - "data/**"
+    branches:
+      - main
+  # Allows manual dispatch
+  workflow_dispatch:
+
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "ingest"
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - run: npm install @globus/sdk
+      - name: Ingest ./data/ingest.json
+        id: ingest
+        uses: actions/github-script@v7
+        env:
+          CLIENT_SECRET: ${{ secrets.GLOBUS_CLIENT_SECRET }}
+          CLIENT_ID: ${{ secrets.GLOBUS_CLIENT_ID }}
+        with:
+            script: |
+              const { auth, search } = require('@globus/sdk');
+              const fs = require('fs');
+              let config = {};
+              try {
+                config = JSON.parse(fs.readFileSync('./static.json', 'utf8'));
+              } catch (e) {
+                core.setFailed(`Unable to parse static.json: ${e.message}`);
+              }
+
+              const { CLIENT_SECRET, CLIENT_ID } = process.env
+
+              const INDEX = config?.data?.attributes?.globus?.search?.index;
+
+              if (!INDEX) {
+                core.setFailed('Missing globus.search.index in static.json');
+              }
+
+              async function main() {
+                let payload = null;
+                try {
+                  payload = JSON.parse(fs.readFileSync('./data/ingest.json', 'utf8'));
+                } catch (e) {
+                  core.setFailed(`Unable to parse ./data/ingest.json: ${e.message}`);
+                }
+
+                const token = await (await auth.oauth2.token.token({
+                  payload: {
+                    scope: 'urn:globus:auth:scope:search.api.globus.org:ingest',
+                    grant_type: 'client_credentials'
+                  },
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Basic ${Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`
+                  }
+                })).json();
+
+
+                await search.index.ingest(INDEX, {
+                  payload: dataset,
+                  headers: {
+                    Authorization: `Bearer ${token.access_token}`
+                  }
+                });
+              }
+
+              main();
+              
+              
