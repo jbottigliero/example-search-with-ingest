@@ -45,6 +45,10 @@ jobs:
 
               const { CLIENT_SECRET, CLIENT_ID } = process.env
 
+              if (!CLIENT_SECRET || !CLIENT_ID) {
+                core.setFailed('Missing GLOBUS_CLIENT_SECRET or GLOBUS_CLIENT_ID.');
+              }
+
               const INDEX = config?.data?.attributes?.globus?.search?.index;
 
               if (!INDEX) {
@@ -52,9 +56,9 @@ jobs:
               }
 
               async function main() {
-                let payload = null;
+                let ingestPayload = null;
                 try {
-                  payload = JSON.parse(fs.readFileSync('./data/ingest.json', 'utf8'));
+                  ingestPayload = JSON.parse(fs.readFileSync('./data/ingest.json', 'utf8'));
                 } catch (e) {
                   core.setFailed(`Unable to parse ./data/ingest.json: ${e.message}`);
                 }
@@ -72,7 +76,7 @@ jobs:
 
 
                 await search.index.ingest(INDEX, {
-                  payload: dataset,
+                  payload: ingestPayload,
                   headers: {
                     Authorization: `Bearer ${token.access_token}`
                   }
