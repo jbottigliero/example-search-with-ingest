@@ -8,7 +8,7 @@
           "public"
         ],
         "content": {
-          "name": "Atlanta International Airport Climate Data",
+          "name": "Atlanta International Airport Climate Data (ATL)",
           "id": "5352507d-1293-4827-8ba9-c2d4a0eb78d1",
           "path": "/portal/catalog/dataset_atl",
           "region": "south",
@@ -30,7 +30,7 @@
           "public"
         ],
         "content": {
-          "name": "Boston Logan International Airport Climate Data",
+          "name": "Boston Logan International Airport Climate Data (BOS)",
           "id": "5bb05576-7087-47bd-a32d-34165b00a29c",
           "path": "/portal/catalog/dataset_bos",
           "region": "northeast",
